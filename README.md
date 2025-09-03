@@ -19,11 +19,11 @@ A comprehensive testing framework for evaluating and optimizing your CLAUDE.md i
 # Clone and install dependencies
 npm install
 
-# Create your environment file
-cp .env.example .env
+# Make sure you have Claude Code CLI installed
+# Download from: https://claude.ai/code
 
-# Add your Anthropic API key to .env
-ANTHROPIC_API_KEY=your-api-key-here
+# Create your environment file (no API key needed!)
+cp .env.example .env
 ```
 
 ### 2. Initialize
@@ -208,9 +208,9 @@ All data is stored in SQLite (`claude-test.db`) with the following structure:
 - `test_runs`: Test execution records
 - `test_results`: Individual test results with full conversation data
 
-## API Integration
+## Claude Code Integration
 
-The system uses Anthropic's API directly for maximum control and data capture. Virtual tools simulate file operations and command execution for safety while maintaining realistic behavior.
+The system uses Claude Code CLI directly for realistic testing. Each test runs in an isolated workspace with the specified CLAUDE.md file, capturing real Claude Code behavior including tool usage and file operations.
 
 ## Contributing
 

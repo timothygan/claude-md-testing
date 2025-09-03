@@ -39,7 +39,7 @@ export async function initCommand(args: InitCommandArgs) {
     if (!fs.existsSync('.env')) {
       fs.copyFileSync('.env.example', '.env');
       console.log(chalk.green('✓'), 'Created .env file from template');
-      console.log(chalk.yellow('⚠'), 'Please update .env with your ANTHROPIC_API_KEY');
+      console.log(chalk.blue('ℹ'), 'No API key needed - uses Claude CLI directly');
     }
     
     db.close();
@@ -48,7 +48,7 @@ export async function initCommand(args: InitCommandArgs) {
     console.log(chalk.bold.green('🎉 Initialization complete!'));
     console.log();
     console.log('Next steps:');
-    console.log('1. Update your .env file with ANTHROPIC_API_KEY');
+    console.log('1. Make sure Claude Code CLI is installed: https://claude.ai/code');
     console.log('2. Run: claude-test add --file ./claude-files/basic.md --name "basic"');
     console.log('3. Run: claude-test run --claude-file "basic" --suite "basic"');
     

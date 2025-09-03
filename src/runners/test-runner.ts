@@ -1,4 +1,4 @@
-import { ClaudeClient } from '../api/claude-client';
+import { ClaudeCodeRunner } from '../execution/claude-code-runner';
 import { 
   TestSuite, 
   Test, 
@@ -8,29 +8,25 @@ import {
   RawMetrics,
   MetricScores
 } from '../types';
-import { VirtualFileSystem } from '../utils/virtual-fs';
 import { EvaluatorManager } from '../evaluators/evaluator-manager';
 
 export interface TestRunnerConfig {
-  apiKey: string;
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
+  workspaceDir?: string;
   timeout?: number;
+  useSkipPermissions?: boolean;
 }
 
 export class TestRunner {
-  private client: ClaudeClient;
+  private runner: ClaudeCodeRunner;
   private config: TestRunnerConfig;
   private evaluatorManager: EvaluatorManager;
 
-  constructor(config: TestRunnerConfig) {
+  constructor(config: TestRunnerConfig = {}) {
     this.config = config;
-    this.client = new ClaudeClient({
-      apiKey: config.apiKey,
-      model: config.model,
-      temperature: config.temperature,
-      maxTokens: config.maxTokens
+    this.runner = new ClaudeCodeRunner({
+      workspaceDir: config.workspaceDir,
+      timeout: config.timeout,
+      useSkipPermissions: config.useSkipPermissions
     });
     this.evaluatorManager = new EvaluatorManager();
   }
@@ -38,6 +34,7 @@ export class TestRunner {
   async runTestSuite(
     claudeFile: ClaudeFile,
     testSuite: TestSuite,
+    testRunId: number,
     callbacks?: {
       onTestStart?: (test: Test) => void;
       onTestComplete?: (test: Test, result: TestResult) => void;
@@ -49,6 +46,7 @@ export class TestRunner {
     summary: TestSummary;
   }> {
     const testRun: TestRun = {
+      id: testRunId,
       claudeFileId: claudeFile.id!,
       testSuiteVersion: testSuite.version,
       startedAt: new Date(),
@@ -61,14 +59,11 @@ export class TestRunner {
     for (const test of testSuite.tests) {
       callbacks?.onTestStart?.(test);
       
-      // Reset environment for each test
-      this.client.reset();
-      
       try {
-        const result = await this.runSingleTest(
+        const result = await this.runner.executeTest(
           claudeFile.content,
           test,
-          testRun.id!
+          testRunId
         );
         
         results.push(result);
@@ -76,7 +71,7 @@ export class TestRunner {
       } catch (error) {
         console.error(`Test ${test.id} failed:`, error);
         // Create a failed result
-        const failedResult = this.createFailedResult(test, testRun.id!, error);
+        const failedResult = this.createFailedResult(test, testRunId, error);
         results.push(failedResult);
         callbacks?.onTestComplete?.(test, failedResult);
       }
@@ -97,66 +92,7 @@ export class TestRunner {
     };
   }
 
-  private async runSingleTest(
-    claudeMdContent: string,
-    test: Test,
-    testRunId: number
-  ): Promise<TestResult> {
-    const startTime = Date.now();
-    
-    const executionResult = await this.client.executeWithClaudeFile(
-      claudeMdContent,
-      test.prompt,
-      { timeout: test.timeout || this.config.timeout }
-    );
-
-    const virtualFS = this.client.getVirtualFS();
-    const commandHistory = this.client.getCommandHistory();
-    
-    // Collect raw metrics
-    const rawMetrics: RawMetrics = {
-      allToolCalls: executionResult.conversation.messages
-        .flatMap(m => m.toolCalls || []),
-      fileOperations: virtualFS.getFileOperations(),
-      commandsExecuted: commandHistory,
-      errorsEncountered: this.extractErrors(executionResult.conversation),
-      retryAttempts: this.countRetries(executionResult.conversation)
-    };
-
-    // Calculate scores using evaluator modules
-    const scores = await this.evaluatorManager.evaluateAll(
-      test,
-      { 
-        testRunId,
-        testId: test.id,
-        prompt: test.prompt,
-        response: executionResult.response,
-        tokensInput: executionResult.tokensUsed.input,
-        tokensOutput: executionResult.tokensUsed.output,
-        tokensThinking: executionResult.tokensUsed.thinking,
-        responseTimeMs: executionResult.duration,
-        scores: {} as MetricScores, // Temporary, will be replaced
-        conversation: executionResult.conversation,
-        metricsRaw: rawMetrics
-      }
-    );
-
-    const result: TestResult = {
-      testRunId,
-      testId: test.id,
-      prompt: test.prompt,
-      response: executionResult.response,
-      tokensInput: executionResult.tokensUsed.input,
-      tokensOutput: executionResult.tokensUsed.output,
-      tokensThinking: executionResult.tokensUsed.thinking,
-      responseTimeMs: executionResult.duration,
-      scores,
-      conversation: executionResult.conversation,
-      metricsRaw: rawMetrics
-    };
-
-    return result;
-  }
+  // Remove the old runSingleTest method since we're using ClaudeCodeRunner.executeTest directly
 
   private calculateBasicScores(
     test: Test,

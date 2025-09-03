@@ -13,10 +13,12 @@ export async function runCommand(args: RunCommandArgs) {
   const { 'claude-file': claudeFileName, suite, verbose } = args;
   
   try {
-    // Check for required environment variables
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    // Check if Claude CLI is available
+    const { execSync } = require('child_process');
+    try {
+      execSync('claude --version', { stdio: 'ignore' });
+    } catch (error) {
+      throw new Error('Claude CLI not found. Please install Claude Code from https://claude.ai/code');
     }
     
     // Initialize database
@@ -47,11 +49,9 @@ export async function runCommand(args: RunCommandArgs) {
     
     // Initialize test runner
     const runner = new TestRunner({
-      apiKey,
-      model: process.env.TEST_MODEL || 'claude-3-5-sonnet-20241022',
-      temperature: parseFloat(process.env.TEST_TEMPERATURE || '0'),
-      maxTokens: parseInt(process.env.TEST_MAX_TOKENS || '4096'),
-      timeout: 30000
+      workspaceDir: process.env.TEST_WORKSPACE_DIR || './test-workspaces',
+      timeout: parseInt(process.env.TEST_TIMEOUT || '120000'), // 2 minutes
+      useSkipPermissions: process.env.USE_SKIP_PERMISSIONS !== 'false'
     });
     
     // Create test run record
@@ -61,6 +61,7 @@ export async function runCommand(args: RunCommandArgs) {
     const { results, summary } = await runner.runTestSuite(
       claudeFile,
       testSuite,
+      testRun.id!,
       {
         onTestStart: (test: Test) => {
           if (verbose) {
