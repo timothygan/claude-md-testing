@@ -15,7 +15,7 @@ export class ClaudeCodeRunner {
   constructor(config: ClaudeCodeRunnerConfig = {}) {
     this.config = {
       workspaceDir: config.workspaceDir || './test-workspaces',
-      timeout: config.timeout || 120000, // 2 minutes
+      timeout: config.timeout || 60000, // 1 minute per test
       useSkipPermissions: config.useSkipPermissions ?? true
     };
   }
@@ -118,21 +118,21 @@ export class ClaudeCodeRunner {
       const startTime = Date.now();
       
       // Prepare Claude Code command
-      const args = [
-        '--working-directory', workspacePath
-      ];
+      const args = ['--print']; // Use print mode for non-interactive execution
       
       if (this.config.useSkipPermissions) {
         args.push('--dangerously-skip-permissions');
       }
       
-      // Add prompt as argument
-      args.push(prompt);
-      
       const claudeProcess = spawn('claude', args, {
-        cwd: workspacePath,
-        stdio: ['pipe', 'pipe', 'pipe']
+        cwd: workspacePath, // Claude runs in the workspace directory
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: process.env // Inherit environment variables for authentication
       });
+      
+      // Send prompt via stdin instead of as command argument
+      claudeProcess.stdin?.write(prompt);
+      claudeProcess.stdin?.end();
       
       let output = '';
       let errorOutput = '';

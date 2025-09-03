@@ -6,7 +6,12 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(npm run claude-test:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Read(/var/folders/mj/r7mb0gbj5678z0gd9q2gn7vm0000gn/T/TemporaryItems/NSIRD_screencaptureui_CAUQYS/**)",
+      "Bash(ps:*)",
+      "Bash(gtimeout 30s npm run claude-test -- run -c \"debug-hello\" -s basic)",
+      "Bash(node:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

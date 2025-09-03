@@ -10,6 +10,7 @@ import { listCommand } from './commands/list';
 import { compareCommand } from './commands/compare';
 import { resultsCommand } from './commands/results';
 import { initCommand } from './commands/init';
+import { exportCommand } from './commands/export';
 
 // Load environment variables
 dotenv.config();
@@ -116,6 +117,40 @@ const cli = yargs(hideBin(process.argv))
       }
     },
     (args: any) => resultsCommand(args)
+  )
+  .command(
+    'export',
+    'Export detailed test results to files',
+    {
+      'run-id': {
+        alias: 'r',
+        type: 'number',
+        description: 'Test run ID to export'
+      },
+      'claude-file': {
+        alias: 'c',
+        type: 'string',
+        description: 'Export all runs for this CLAUDE.md file'
+      },
+      latest: {
+        alias: 'l',
+        type: 'boolean',
+        description: 'Export latest test run'
+      },
+      format: {
+        alias: 'f',
+        type: 'string',
+        choices: ['json', 'markdown', 'html'],
+        default: 'markdown',
+        description: 'Export format'
+      },
+      output: {
+        alias: 'o',
+        type: 'string',
+        description: 'Output filename (optional)'
+      }
+    },
+    (args: any) => exportCommand(args)
   )
   .option('verbose', {
     alias: 'v',
